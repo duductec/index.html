@@ -52,8 +52,8 @@
     const db = firebase.database();
 
     function salvarCliente() {
-      const numero = document.getElementById('numero').value;
-      const nome = document.getElementById('nome').value;
+      const numero = document.getElementById('numero').value.trim();
+      const nome = document.getElementById('nome').value.trim();
       const valor = parseFloat(document.getElementById('valor').value);
       const juros = parseFloat(document.getElementById('juros').value);
       const data = new Date().toLocaleDateString('pt-BR');
@@ -66,8 +66,9 @@
       const valorTotal = (valor * (1 - juros / 100)).toFixed(2);
       const id = Date.now();
 
-      db.ref('pagamentos/' + id).set({ numero, nome, valor, juros, valorTotal, data });
-      limparCampos();
+      db.ref('pagamentos/' + id).set({ numero, nome, valor, juros, valorTotal, data })
+        .then(() => limparCampos())
+        .catch(err => alert('Erro ao salvar: ' + err.message));
     }
 
     function limparCampos() {
@@ -79,7 +80,8 @@
 
     function removerCliente(id) {
       if (confirm("Deseja excluir este registro?")) {
-        db.ref('pagamentos/' + id).remove();
+        db.ref('pagamentos/' + id).remove()
+          .catch(err => alert('Erro ao excluir: ' + err.message));
       }
     }
 
@@ -92,18 +94,18 @@
     }
 
     function exportarCSV() {
-      db.ref('pagamentos').once('value', snapshot => {
+      db.ref('pagamentos').once('value').then(snapshot => {
         let csv = 'Número de Série,Nome,Valor,Juros (%),Valor Total,Data\n';
         snapshot.forEach(item => {
           const d = item.val();
           csv += `${d.numero},${d.nome},${d.valor},${d.juros},${d.valorTotal},${d.data}\n`;
         });
-        const blob = new Blob([csv], { type: 'text/csv' });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = 'dados_pagamentos.csv';
         link.click();
-      });
+      }).catch(err => alert('Erro ao exportar: ' + err.message));
     }
 
     db.ref('pagamentos').on('value', snapshot => {

@@ -65,7 +65,12 @@
         juros,
         valorTotal,
         dataCadastro,
-        dataCompleta: dataHoje,
+        const hojeData = new Date();
+        const ano = hojeData.getFullYear();
+        const mes = String(hojeData.getMonth() + 1).padStart(2, '0');
+        const dia = String(hojeData.getDate()).padStart(2, '0');
+        const dataCompleta = `${ano}-${mes}-${dia}`;
+        dataCompleta: dataCompleta,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
       }).then(() => {
         alert("Salvo com sucesso!");

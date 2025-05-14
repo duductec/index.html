@@ -3,7 +3,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Sistema de Pagamentos</title>
+  <title>Sistema de Pagamentos Diário</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
   <script>
@@ -17,10 +17,11 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    let dataHoje = "2025-05-14";
   </script>
 </head>
 <body onload="carregarDados()">
-  <h2>Sistema de Pagamentos</h2>
+  <h2>Sistema de Pagamentos – 2025-05-14</h2>
   <label>Número de Série: </label><input type="text" id="numero_serie" onblur="buscarNomePorNumeroSerie()"><br><br>
   <label>Nome: </label><input type="text" id="nome"><br><br>
   <label>Valor a Receber: </label><input type="number" id="valor_receber"><br><br>
@@ -28,16 +29,18 @@
   <button onclick="salvarDados()">Adicionar Cliente</button>
   <button onclick="exportarCSV()">Salvar CSV</button>
   <input type="file" id="arquivo" onchange="carregarArquivo(event)">
-  <h3>Clientes Cadastrados</h3>
+  
+  <label>Selecionar data: </label><input type="date" id="filtro_data" onchange="carregarDados()"> <br><br>
+  <h3>Clientes Cadastrados (2025-05-14)</h3>
   <table border="1">
     <thead>
       <tr>
         <th>Número de Série</th>
-        <th>Nome</th>
-        <th>Valor a Receber</th>
+        <th style="background-color:#fff8b3;">Nome</th>
+        <th style="background-color:#ccffcc;">Valor a Receber</th>
         <th>Juros (%)</th>
-        <th>Valor Total</th>
-        <th>Data do Cadastro</th>
+        <th style="background-color:#fff8b3;">Valor Total</th>
+        <th>Data</th>
         <th>Ações</th>
       </tr>
     </thead>
@@ -62,32 +65,48 @@
         juros,
         valorTotal,
         dataCadastro,
+        dataCompleta: dataHoje,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
       }).then(() => {
-        alert("Salvo com sucesso no Firebase!");
+        alert("Salvo com sucesso!");
         carregarDados();
         limparFormulario();
-      }).catch((error) => {
-        console.error("Erro ao salvar: ", error);
       });
     }
 
-    function carregarDados() {
-      db.collection("clientes_dados_95321").get().then((querySnapshot) => {
+    
+function carregarDados() {
+  let inputData = document.getElementById("filtro_data");
+  if (inputData && inputData.value) {
+    dataHoje = inputData.value;
+  } else {
+    const hojeData = new Date();
+    const ano = hojeData.getFullYear();
+    const mes = String(hojeData.getMonth() + 1).padStart(2, '0');
+    const dia = String(hojeData.getDate()).padStart(2, '0');
+    dataHoje = `${ano}-${mes}-${dia}`;
+    if (inputData) inputData.value = dataHoje;
+  }
+
+      db.collection("clientes_dados_95321")
+        .where("dataCompleta", "==", dataHoje)
+        .orderBy("timestamp", "asc")
+        .get().then((querySnapshot) => {
         let tabela = "";
         querySnapshot.forEach((doc) => {
           let d = doc.data();
+          let id = doc.id;
           tabela += `
             <tr>
               <td>${d.numeroSerie}</td>
-              <td>${d.nome}</td>
-              <td>R$ ${parseFloat(d.valorReceber).toFixed(2)}</td>
+              <td style="background-color:#fff8b3;">${d.nome}</td>
+              <td style="background-color:#ccffcc;">R$ ${parseFloat(d.valorReceber).toFixed(2)}</td>
               <td>${d.juros}%</td>
-              <td>R$ ${parseFloat(d.valorTotal).toFixed(2)}</td>
+              <td style="background-color:#fff8b3;">R$ ${parseFloat(d.valorTotal).toFixed(2)}</td>
               <td>${d.dataCadastro}</td>
               <td>
-                <button onclick="editarDados(this)">Editar</button>
-                <button onclick="deletarDados(this)">Deletar</button>
+                <button onclick="editarDados(this)" data-id="${id}">Editar</button>
+                <button onclick="deletarDados(this)" data-id="${id}">Deletar</button>
               </td>
             </tr>`;
         });
@@ -98,12 +117,14 @@
     function buscarNomePorNumeroSerie() {
       let numeroSerie = document.getElementById("numero_serie").value;
       if (!numeroSerie) return;
-      db.collection("clientes_dados_95321").where("numeroSerie", "==", numeroSerie).get().then((querySnapshot) => {
-        if (!querySnapshot.empty) {
-          let dados = querySnapshot.docs[0].data();
-          document.getElementById("nome").value = dados.nome;
-        }
-      });
+      db.collection("clientes_dados_95321")
+        .where("numeroSerie", "==", numeroSerie)
+        .get().then((querySnapshot) => {
+          if (!querySnapshot.empty) {
+            let dados = querySnapshot.docs[0].data();
+            document.getElementById("nome").value = dados.nome;
+          }
+        });
     }
 
     function editarDados(botao) {
@@ -116,14 +137,9 @@
     }
 
     function deletarDados(botao) {
-      let linha = botao.closest("tr");
-      let numeroSerie = linha.children[0].innerText;
-      db.collection("clientes_dados_95321").where("numeroSerie", "==", numeroSerie).get().then((querySnapshot) => {
-        querySnapshot.forEach((doc) => {
-          db.collection("clientes_dados_95321").doc(doc.id).delete().then(() => {
-            carregarDados();
-          });
-        });
+      let id = botao.getAttribute("data-id");
+      db.collection("clientes_dados_95321").doc(id).delete().then(() => {
+        carregarDados();
       });
     }
 
@@ -135,8 +151,11 @@
     }
 
     function exportarCSV() {
-      db.collection("clientes_dados_95321").get().then((querySnapshot) => {
-        let csv = "Número de Série,Nome,Valor a Receber,Juros (%),Valor Total,Data do Cadastro\n";
+      db.collection("clientes_dados_95321")
+        .where("dataCompleta", "==", dataHoje)
+        .orderBy("timestamp", "asc")
+        .get().then((querySnapshot) => {
+        let csv = "Número de Série,Nome,Valor a Receber,Juros (%),Valor Total,Data\n";
         querySnapshot.forEach((doc) => {
           let d = doc.data();
           csv += `${d.numeroSerie},${d.nome},${d.valorReceber},${d.juros},${d.valorTotal},${d.dataCadastro}\n`;
@@ -144,7 +163,7 @@
         let blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
         let link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.download = "clientes_" + new Date().toISOString().slice(0,10) + ".csv";
+        link.download = "clientes_2025-05-14.csv";
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -167,6 +186,7 @@
               juros: parseFloat(colunas[3].replace("%", "").trim()),
               valorTotal: parseFloat(colunas[4].replace("R$", "").trim()),
               dataCadastro: colunas[5],
+              dataCompleta: dataHoje,
               timestamp: firebase.firestore.FieldValue.serverTimestamp()
             }).then(() => {
               carregarDados();

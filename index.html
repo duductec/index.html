@@ -28,7 +28,13 @@
   <button onclick="salvarDados()">Adicionar Cliente</button>
   <button onclick="exportarCSV()">Salvar CSV</button>
   <input type="file" id="arquivo" onchange="carregarArquivo(event)">
+  
+  <label>Filtrar por data: </label>
+  <select id="filtro_data" onchange="carregarDadosPorData()">
+    <option value="">Hoje</option>
+  </select><br><br>
   <h3>Clientes Cadastrados</h3>
+    
   <table border="1">
     <thead>
       <tr>
@@ -72,8 +78,57 @@
       });
     }
 
-    function carregarDados() {
-      db.collection("clientes_dados_95321").orderBy("timestamp", "asc").get().then((querySnapshot) => {
+    
+function carregarDados() {
+  const hoje = new Date();
+  const hojeFormatado = hoje.toLocaleDateString();
+  carregarDadosPorData(hojeFormatado);
+}
+
+function carregarDadosPorData(dataSelecionada = null) {
+  db.collection("clientes_dados_95321").orderBy("timestamp", "asc").get().then((querySnapshot) => {
+    let tabela = "";
+    let datasUnicas = new Set();
+    querySnapshot.forEach((doc) => {
+      let d = doc.data();
+      datasUnicas.add(d.dataCadastro);
+    });
+
+    // Atualizar o select com as datas únicas ordenadas
+    const seletor = document.getElementById("filtro_data");
+    if (seletor && seletor.options.length <= 1) {
+      Array.from(datasUnicas).sort().forEach(data => {
+        let opt = document.createElement("option");
+        opt.value = data;
+        opt.innerText = data;
+        seletor.appendChild(opt);
+      });
+    }
+
+    querySnapshot.forEach((doc) => {
+      let d = doc.data();
+      let id = doc.id;
+      if (!dataSelecionada || d.dataCadastro === dataSelecionada) {
+        tabela += `
+          <tr>
+            <td>${d.numeroSerie}</td>
+            <td style="background-color: #fff8b3;">${d.nome}</td>
+            <td style="background-color: #ccffcc;">R$ ${parseFloat(d.valorReceber).toFixed(2)}</td>
+            <td>${d.juros}%</td>
+            <td style="background-color: #fff8b3;">R$ ${parseFloat(d.valorTotal).toFixed(2)}</td>
+            <td>${d.dataCadastro}</td>
+            <td>
+              <button onclick="editarDados(this)" data-id="${id}">Editar</button>
+              <button onclick="deletarDados(this)" data-id="${id}">Deletar</button>
+            </td>
+          </tr>`;
+      }
+    });
+    document.getElementById("tabela_resultados").innerHTML = tabela;
+  });
+}
+
+      db.collection("clientes_dados_95321").get().then((querySnapshot) => {
         let tabela = "";
         querySnapshot.forEach((doc) => {
           let d = doc.data();
@@ -131,7 +186,7 @@
     }
 
     function exportarCSV() {
-      db.collection("clientes_dados_95321").orderBy("timestamp", "asc").get().then((querySnapshot) => {
+      db.collection("clientes_dados_95321").get().then((querySnapshot) => {
         let csv = "Número de Série,Nome,Valor a Receber,Juros (%),Valor Total,Data do Cadastro\n";
         querySnapshot.forEach((doc) => {
           let d = doc.data();

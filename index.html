@@ -106,7 +106,16 @@
             let id = doc.id;
 
             // Mostrar se tiver dataCompleta igual OU se não tiver dataCompleta (antigo)
-            if ((d.dataCompleta && d.dataCompleta === dataFiltrada) || (!d.dataCompleta && mostrarSemDataCompleta)) {
+            
+            let deveExibir = false;
+            if (d.dataCompleta) {
+              if (d.dataCompleta === dataFiltrada) deveExibir = true;
+            } else {
+              // Se não tem dataCompleta, considerar registro antigo
+              deveExibir = true;
+            }
+            if (deveExibir) {
+
 
             let d = doc.data();
             let id = doc.id;
@@ -132,7 +141,7 @@
     function buscarNomePorNumeroSerie() {
       let numeroSerie = document.getElementById("numero_serie").value;
       if (!numeroSerie) return;
-      db.collection("clientes_dados_95321").where("numeroSerie", "==", numeroSerie).get().then((querySnapshot) => {
+      db.collection("clientes_dados_95321").where("numeroSerie", "==", numeroSerie).orderBy("timestamp", "desc").limit(1).get().then((querySnapshot) => {
         if (!querySnapshot.empty) {
           let dados = querySnapshot.docs[0].data();
           document.getElementById("nome").value = dados.nome;
@@ -181,7 +190,16 @@
             let id = doc.id;
 
             // Mostrar se tiver dataCompleta igual OU se não tiver dataCompleta (antigo)
-            if ((d.dataCompleta && d.dataCompleta === dataFiltrada) || (!d.dataCompleta && mostrarSemDataCompleta)) {
+            
+            let deveExibir = false;
+            if (d.dataCompleta) {
+              if (d.dataCompleta === dataFiltrada) deveExibir = true;
+            } else {
+              // Se não tem dataCompleta, considerar registro antigo
+              deveExibir = true;
+            }
+            if (deveExibir) {
+
 
             let d = doc.data();
             csv += `${d.numeroSerie},${d.nome},${d.valorReceber},${d.juros},${d.valorTotal},${d.dataCadastro}\n`;

@@ -82,51 +82,7 @@
       });
     }
 
-    
-function carregarDados() {
-  let dataInicial = document.getElementById("dataInicial").value;
-  let dataFinal = document.getElementById("dataFinal").value;
-
-  db.collection("clientes_dados_95321").orderBy("timestamp", "asc").get().then((querySnapshot) => {
-    let tabela = "";
-    querySnapshot.forEach((doc) => {
-      let d = doc.data();
-      let id = doc.id;
-
-      let incluir = false;
-
-      if (!dataInicial && !dataFinal) {
-        incluir = true; // Exibe tudo, inclusive registros antigos sem dataCompleta
-      } else if (!d.dataCompleta) {
-        incluir = false; // não entra no filtro de período
-      } else if (dataInicial && dataFinal && d.dataCompleta >= dataInicial && d.dataCompleta <= dataFinal) {
-        incluir = true;
-      } else if (dataInicial && !dataFinal && d.dataCompleta >= dataInicial) {
-        incluir = true;
-      } else if (!dataInicial && dataFinal && d.dataCompleta <= dataFinal) {
-        incluir = true;
-      }
-
-      if (incluir) {
-        tabela += `
-          <tr>
-            <td>${d.numeroSerie}</td>
-            <td style="background-color: #fff8b3;">${d.nome}</td>
-            <td style="background-color: #ccffcc;">R$ ${parseFloat(d.valorReceber).toFixed(2)}</td>
-            <td>${d.juros}%</td>
-            <td style="background-color: #fff8b3;">R$ ${parseFloat(d.valorTotal).toFixed(2)}</td>
-            <td>${d.dataCadastro}</td>
-            <td>
-              <button onclick="editarDados(this)" data-id="${id}">Editar</button>
-              <button onclick="deletarDados(this)" data-id="${id}">Deletar</button>
-            </td>
-          </tr>`;
-      }
-    });
-    document.getElementById("tabela_resultados").innerHTML = tabela;
-  });
-}
-
+    function carregarDados() {
       let filtro = document.getElementById("filtro_data");
       let dataFiltrada = filtro && filtro.value ? filtro.value : null;
 
@@ -251,3 +207,48 @@ function carregarDados() {
   </script>
 </body>
 </html>
+
+<script>
+function buscarPorPeriodo() {
+  let dataInicial = document.getElementById("dataInicial").value;
+  let dataFinal = document.getElementById("dataFinal").value;
+
+  db.collection("clientes_dados_95321").orderBy("timestamp", "asc").get().then((querySnapshot) => {
+    let tabela = "";
+    querySnapshot.forEach((doc) => {
+      let d = doc.data();
+      let id = doc.id;
+
+      let incluir = false;
+      if (!dataInicial && !dataFinal) {
+        incluir = true; // Mostrar tudo
+      } else if (!d.dataCompleta) {
+        incluir = false; // Dados antigos fora do filtro
+      } else if (dataInicial && dataFinal && d.dataCompleta >= dataInicial && d.dataCompleta <= dataFinal) {
+        incluir = true;
+      } else if (dataInicial && !dataFinal && d.dataCompleta >= dataInicial) {
+        incluir = true;
+      } else if (!dataInicial && dataFinal && d.dataCompleta <= dataFinal) {
+        incluir = true;
+      }
+
+      if (incluir) {
+        tabela += `
+          <tr>
+            <td>${d.numeroSerie}</td>
+            <td style="background-color: #fff8b3;">${d.nome}</td>
+            <td style="background-color: #ccffcc;">R$ ${parseFloat(d.valorReceber).toFixed(2)}</td>
+            <td>${d.juros}%</td>
+            <td style="background-color: #fff8b3;">R$ ${parseFloat(d.valorTotal).toFixed(2)}</td>
+            <td>${d.dataCadastro}</td>
+            <td>
+              <button onclick="editarDados(this)" data-id="${id}">Editar</button>
+              <button onclick="deletarDados(this)" data-id="${id}">Deletar</button>
+            </td>
+          </tr>`;
+      }
+    });
+    document.getElementById("tabela_resultados").innerHTML = tabela;
+  });
+}
+</script>

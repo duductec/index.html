@@ -90,22 +90,21 @@ function carregarDados() {
   db.collection("clientes_dados_95321").orderBy("timestamp", "asc").get().then((querySnapshot) => {
     let tabela = "";
     querySnapshot.forEach((doc) => {
-      const d = doc.data();
-      const id = doc.id;
+      let d = doc.data();
+      let id = doc.id;
 
       let incluir = false;
 
-      if (!d.dataCompleta) {
-        // Registros antigos SEM dataCompleta
-        incluir = (!dataInicial && !dataFinal);
-      } else if (dataInicial && dataFinal) {
-        incluir = d.dataCompleta >= dataInicial && d.dataCompleta <= dataFinal;
-      } else if (dataInicial && !dataFinal) {
-        incluir = d.dataCompleta >= dataInicial;
-      } else if (!dataInicial && dataFinal) {
-        incluir = d.dataCompleta <= dataFinal;
-      } else {
-        incluir = true; // se nenhum filtro preenchido
+      if (!dataInicial && !dataFinal) {
+        incluir = true; // Exibe tudo, inclusive registros antigos sem dataCompleta
+      } else if (!d.dataCompleta) {
+        incluir = false; // não entra no filtro de período
+      } else if (dataInicial && dataFinal && d.dataCompleta >= dataInicial && d.dataCompleta <= dataFinal) {
+        incluir = true;
+      } else if (dataInicial && !dataFinal && d.dataCompleta >= dataInicial) {
+        incluir = true;
+      } else if (!dataInicial && dataFinal && d.dataCompleta <= dataFinal) {
+        incluir = true;
       }
 
       if (incluir) {

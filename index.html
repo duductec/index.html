@@ -48,7 +48,42 @@
   </table>
 
   <script>
-    function salvarDados() {
+    
+function salvarDados() {
+  let numeroSerie = document.getElementById("numero_serie").value;
+  let nome = document.getElementById("nome").value;
+  let valorReceber = parseFloat(document.getElementById("valor_receber").value);
+  let juros = parseFloat(document.getElementById("juros").value);
+  let dataCadastro = new Date().toLocaleDateString();
+
+  const hojeData = new Date();
+  const ano = hojeData.getFullYear();
+  const mes = String(hojeData.getMonth() + 1).padStart(2, '0');
+  const dia = String(hojeData.getDate()).padStart(2, '0');
+  const dataCompleta = `${ano}-${mes}-${dia}`;
+
+  if (isNaN(valorReceber) || isNaN(juros)) {
+    alert("Por favor, preencha todos os campos corretamente.");
+    return;
+  }
+
+  let valorTotal = valorReceber - (valorReceber * (juros / 100));
+  db.collection("clientes_dados_95321").add({
+    numeroSerie,
+    nome,
+    valorReceber,
+    juros,
+    valorTotal,
+    dataCadastro,
+    dataCompleta,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => {
+    alert("Salvo com sucesso!");
+    carregarDados();
+    limparFormulario();
+  });
+}
+
       let numeroSerie = document.getElementById("numero_serie").value;
       let nome = document.getElementById("nome").value;
       let valorReceber = parseFloat(document.getElementById("valor_receber").value);
@@ -120,7 +155,24 @@
       });
     }
 
-    function buscarNomePorNumeroSerie() {
+    
+function buscarNomePorNumeroSerie() {
+  let numeroSerie = document.getElementById("numero_serie").value;
+  if (!numeroSerie) return;
+
+  db.collection("clientes_dados_95321")
+    .where("numeroSerie", "==", numeroSerie)
+    .orderBy("timestamp", "desc")
+    .limit(1)
+    .get()
+    .then((querySnapshot) => {
+      if (!querySnapshot.empty) {
+        let dados = querySnapshot.docs[0].data();
+        document.getElementById("nome").value = dados.nome;
+      }
+    });
+}
+
       let numeroSerie = document.getElementById("numero_serie").value;
       if (!numeroSerie) return;
       db.collection("clientes_dados_95321").where("numeroSerie", "==", numeroSerie).orderBy("timestamp", "desc").limit(1).get().then((querySnapshot) => {

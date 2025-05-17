@@ -3,7 +3,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Sistema de Pagamentos Diário</title>
+  <title>Sistema de Pagamentos</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
   <script>
@@ -17,11 +17,10 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    let dataHoje = "2025-05-14";
   </script>
 </head>
 <body onload="carregarDados()">
-  <h2>Sistema de Pagamentos – 2025-05-14</h2>
+  <h2>Sistema de Pagamentos</h2>
   <label>Número de Série: </label><input type="text" id="numero_serie" onblur="buscarNomePorNumeroSerie()"><br><br>
   <label>Nome: </label><input type="text" id="nome"><br><br>
   <label>Valor a Receber: </label><input type="number" id="valor_receber"><br><br>
@@ -29,18 +28,19 @@
   <button onclick="salvarDados()">Adicionar Cliente</button>
   <button onclick="exportarCSV()">Salvar CSV</button>
   <input type="file" id="arquivo" onchange="carregarArquivo(event)">
-  
-  <label>Selecionar data: </label><input type="date" id="filtro_data" onchange="carregarDados()"> <br><br>
-  <h3>Clientes Cadastrados (2025-05-14)</h3>
+  <br><br>
+  <label>Selecionar data: </label><input type="date" id="filtro_data" onchange="carregarDados()"><br><br>
+
+  <h3>Clientes Cadastrados</h3>
   <table border="1">
     <thead>
       <tr>
         <th>Número de Série</th>
-        <th style="background-color:#fff8b3;">Nome</th>
-        <th style="background-color:#ccffcc;">Valor a Receber</th>
+        <th style="background-color: #fff8b3;">Nome</th>
+        <th style="background-color: #ccffcc;">Valor a Receber</th>
         <th>Juros (%)</th>
-        <th style="background-color:#fff8b3;">Valor Total</th>
-        <th>Data</th>
+        <th style="background-color: #fff8b3;">Valor Total</th>
+        <th>Data do Cadastro</th>
         <th>Ações</th>
       </tr>
     </thead>
@@ -53,6 +53,12 @@
       let valorReceber = parseFloat(document.getElementById("valor_receber").value);
       let juros = parseFloat(document.getElementById("juros").value);
       let dataCadastro = new Date().toLocaleDateString();
+      const hojeData = new Date();
+      const ano = hojeData.getFullYear();
+      const mes = String(hojeData.getMonth() + 1).padStart(2, '0');
+      const dia = String(hojeData.getDate()).padStart(2, '0');
+      const dataCompleta = `${ano}-${mes}-${dia}`;
+
       if (isNaN(valorReceber) || isNaN(juros)) {
         alert("Por favor, preencha todos os campos corretamente.");
         return;
@@ -65,71 +71,64 @@
         juros,
         valorTotal,
         dataCadastro,
-        const hojeData = new Date();
-        const ano = hojeData.getFullYear();
-        const mes = String(hojeData.getMonth() + 1).padStart(2, '0');
-        const dia = String(hojeData.getDate()).padStart(2, '0');
-        const dataCompleta = `${ano}-${mes}-${dia}`;
         dataCompleta: dataCompleta,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
       }).then(() => {
-        alert("Salvo com sucesso!");
+        alert("Salvo com sucesso no Firebase!");
         carregarDados();
         limparFormulario();
+      }).catch((error) => {
+        console.error("Erro ao salvar: ", error);
       });
     }
 
-    
-function carregarDados() {
-  let inputData = document.getElementById("filtro_data");
-  if (inputData && inputData.value) {
-    dataHoje = inputData.value;
-  } else {
-    const hojeData = new Date();
-    const ano = hojeData.getFullYear();
-    const mes = String(hojeData.getMonth() + 1).padStart(2, '0');
-    const dia = String(hojeData.getDate()).padStart(2, '0');
-    dataHoje = `${ano}-${mes}-${dia}`;
-    if (inputData) inputData.value = dataHoje;
-  }
+    function carregarDados() {
+      let filtro = document.getElementById("filtro_data");
+      let dataFiltrada = filtro && filtro.value ? filtro.value : null;
+      if (!dataFiltrada) {
+        const hoje = new Date();
+        const ano = hoje.getFullYear();
+        const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+        const dia = String(hoje.getDate()).padStart(2, '0');
+        dataFiltrada = `${ano}-${mes}-${dia}`;
+        if (filtro) filtro.value = dataFiltrada;
+      }
 
       db.collection("clientes_dados_95321")
-        .where("dataCompleta", "==", dataHoje)
+        .where("dataCompleta", "==", dataFiltrada)
         .orderBy("timestamp", "asc")
         .get().then((querySnapshot) => {
-        let tabela = "";
-        querySnapshot.forEach((doc) => {
-          let d = doc.data();
-          let id = doc.id;
-          tabela += `
-            <tr>
-              <td>${d.numeroSerie}</td>
-              <td style="background-color:#fff8b3;">${d.nome}</td>
-              <td style="background-color:#ccffcc;">R$ ${parseFloat(d.valorReceber).toFixed(2)}</td>
-              <td>${d.juros}%</td>
-              <td style="background-color:#fff8b3;">R$ ${parseFloat(d.valorTotal).toFixed(2)}</td>
-              <td>${d.dataCadastro}</td>
-              <td>
-                <button onclick="editarDados(this)" data-id="${id}">Editar</button>
-                <button onclick="deletarDados(this)" data-id="${id}">Deletar</button>
-              </td>
-            </tr>`;
-        });
-        document.getElementById("tabela_resultados").innerHTML = tabela;
+          let tabela = "";
+          querySnapshot.forEach((doc) => {
+            let d = doc.data();
+            let id = doc.id;
+            tabela += `
+              <tr>
+                <td>${d.numeroSerie}</td>
+                <td style="background-color: #fff8b3;">${d.nome}</td>
+                <td style="background-color: #ccffcc;">R$ ${parseFloat(d.valorReceber).toFixed(2)}</td>
+                <td>${d.juros}%</td>
+                <td style="background-color: #fff8b3;">R$ ${parseFloat(d.valorTotal).toFixed(2)}</td>
+                <td>${d.dataCadastro}</td>
+                <td>
+                  <button onclick="editarDados(this)" data-id="${id}">Editar</button>
+                  <button onclick="deletarDados(this)" data-id="${id}">Deletar</button>
+                </td>
+              </tr>`;
+          });
+          document.getElementById("tabela_resultados").innerHTML = tabela;
       });
     }
 
     function buscarNomePorNumeroSerie() {
       let numeroSerie = document.getElementById("numero_serie").value;
       if (!numeroSerie) return;
-      db.collection("clientes_dados_95321")
-        .where("numeroSerie", "==", numeroSerie)
-        .get().then((querySnapshot) => {
-          if (!querySnapshot.empty) {
-            let dados = querySnapshot.docs[0].data();
-            document.getElementById("nome").value = dados.nome;
-          }
-        });
+      db.collection("clientes_dados_95321").where("numeroSerie", "==", numeroSerie).get().then((querySnapshot) => {
+        if (!querySnapshot.empty) {
+          let dados = querySnapshot.docs[0].data();
+          document.getElementById("nome").value = dados.nome;
+        }
+      });
     }
 
     function editarDados(botao) {
@@ -156,22 +155,26 @@ function carregarDados() {
     }
 
     function exportarCSV() {
+      let filtro = document.getElementById("filtro_data");
+      let dataFiltrada = filtro && filtro.value ? filtro.value : null;
+      if (!dataFiltrada) return;
+
       db.collection("clientes_dados_95321")
-        .where("dataCompleta", "==", dataHoje)
+        .where("dataCompleta", "==", dataFiltrada)
         .orderBy("timestamp", "asc")
         .get().then((querySnapshot) => {
-        let csv = "Número de Série,Nome,Valor a Receber,Juros (%),Valor Total,Data\n";
-        querySnapshot.forEach((doc) => {
-          let d = doc.data();
-          csv += `${d.numeroSerie},${d.nome},${d.valorReceber},${d.juros},${d.valorTotal},${d.dataCadastro}\n`;
-        });
-        let blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-        let link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = "clientes_2025-05-14.csv";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+          let csv = "Número de Série,Nome,Valor a Receber,Juros (%),Valor Total,Data do Cadastro\n";
+          querySnapshot.forEach((doc) => {
+            let d = doc.data();
+            csv += `${d.numeroSerie},${d.nome},${d.valorReceber},${d.juros},${d.valorTotal},${d.dataCadastro}\n`;
+          });
+          let blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+          let link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = "clientes_" + dataFiltrada + ".csv";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
       });
     }
 
@@ -184,6 +187,11 @@ function carregarDados() {
         for (let i = 1; i < linhas.length; i++) {
           let colunas = linhas[i].split(",");
           if (colunas.length >= 6) {
+            const hojeData = new Date();
+            const ano = hojeData.getFullYear();
+            const mes = String(hojeData.getMonth() + 1).padStart(2, '0');
+            const dia = String(hojeData.getDate()).padStart(2, '0');
+            const dataCompleta = `${ano}-${mes}-${dia}`;
             db.collection("clientes_dados_95321").add({
               numeroSerie: colunas[0],
               nome: colunas[1],
@@ -191,7 +199,7 @@ function carregarDados() {
               juros: parseFloat(colunas[3].replace("%", "").trim()),
               valorTotal: parseFloat(colunas[4].replace("R$", "").trim()),
               dataCadastro: colunas[5],
-              dataCompleta: dataHoje,
+              dataCompleta: dataCompleta,
               timestamp: firebase.firestore.FieldValue.serverTimestamp()
             }).then(() => {
               carregarDados();

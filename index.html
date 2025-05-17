@@ -31,7 +31,7 @@
   
   <label>Filtrar por data: </label>
   <select id="filtro_data" onchange="carregarDadosPorData()">
-    <option value="">Hoje</option>
+    <option value="">Ver tudo</option>
   </select><br><br>
   <h3>Clientes Cadastrados</h3>
     
@@ -82,7 +82,7 @@
 function carregarDados() {
   const hoje = new Date();
   const hojeFormatado = hoje.toLocaleDateString();
-  carregarDadosPorData(hojeFormatado);
+  carregarDadosPorData(null);
 }
 
 function carregarDadosPorData(dataSelecionada = null) {

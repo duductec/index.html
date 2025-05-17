@@ -98,8 +98,16 @@
         .where("dataCompleta", "==", dataFiltrada)
         .orderBy("timestamp", "asc")
         .get().then((querySnapshot) => {
+          let mostrarSemDataCompleta = true;
           let tabela = "";
+          
           querySnapshot.forEach((doc) => {
+            let d = doc.data();
+            let id = doc.id;
+
+            // Mostrar se tiver dataCompleta igual OU se não tiver dataCompleta (antigo)
+            if ((d.dataCompleta && d.dataCompleta === dataFiltrada) || (!d.dataCompleta && mostrarSemDataCompleta)) {
+
             let d = doc.data();
             let id = doc.id;
             tabela += `
@@ -115,6 +123,7 @@
                   <button onclick="deletarDados(this)" data-id="${id}">Deletar</button>
                 </td>
               </tr>`;
+                      }
           });
           document.getElementById("tabela_resultados").innerHTML = tabela;
       });
@@ -157,14 +166,23 @@
     function exportarCSV() {
       let filtro = document.getElementById("filtro_data");
       let dataFiltrada = filtro && filtro.value ? filtro.value : null;
+      // permitir exportar somente se houver dataFiltrada
       if (!dataFiltrada) return;
 
       db.collection("clientes_dados_95321")
         .where("dataCompleta", "==", dataFiltrada)
         .orderBy("timestamp", "asc")
         .get().then((querySnapshot) => {
+          let mostrarSemDataCompleta = true;
           let csv = "Número de Série,Nome,Valor a Receber,Juros (%),Valor Total,Data do Cadastro\n";
+          
           querySnapshot.forEach((doc) => {
+            let d = doc.data();
+            let id = doc.id;
+
+            // Mostrar se tiver dataCompleta igual OU se não tiver dataCompleta (antigo)
+            if ((d.dataCompleta && d.dataCompleta === dataFiltrada) || (!d.dataCompleta && mostrarSemDataCompleta)) {
+
             let d = doc.data();
             csv += `${d.numeroSerie},${d.nome},${d.valorReceber},${d.juros},${d.valorTotal},${d.dataCadastro}\n`;
           });

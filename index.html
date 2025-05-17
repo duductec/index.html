@@ -50,14 +50,10 @@
       let valorReceber = parseFloat(document.getElementById("valor_receber").value);
       let juros = parseFloat(document.getElementById("juros").value);
       let dataCadastro = new Date().toLocaleDateString();
-      const hoje = new Date();
-      const dataCompleta = hoje.toISOString().split('T')[0];
-
       if (isNaN(valorReceber) || isNaN(juros)) {
-        alert("Preencha todos os campos corretamente.");
+        alert("Por favor, preencha todos os campos corretamente.");
         return;
       }
-
       let valorTotal = valorReceber - (valorReceber * (juros / 100));
       db.collection("clientes_dados_95321").add({
         numeroSerie,
@@ -66,11 +62,13 @@
         juros,
         valorTotal,
         dataCadastro,
-        dataCompleta,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
       }).then(() => {
+        alert("Salvo com sucesso no Firebase!");
         carregarDados();
         limparFormulario();
+      }).catch((error) => {
+        console.error("Erro ao salvar: ", error);
       });
     }
 
@@ -83,10 +81,10 @@
           tabela += `
             <tr>
               <td>${d.numeroSerie}</td>
-              <td>${d.nome}</td>
-              <td>R$ ${parseFloat(d.valorReceber).toFixed(2)}</td>
+              <td style="background-color: #fff8b3;">${d.nome}</td>
+              <td style="background-color: #ccffcc;">R$ ${parseFloat(d.valorReceber).toFixed(2)}</td>
               <td>${d.juros}%</td>
-              <td>R$ ${parseFloat(d.valorTotal).toFixed(2)}</td>
+              <td style="background-color: #fff8b3;">R$ ${parseFloat(d.valorTotal).toFixed(2)}</td>
               <td>${d.dataCadastro}</td>
               <td>
                 <button onclick="editarDados(this)" data-id="${id}">Editar</button>
@@ -101,8 +99,7 @@
     function buscarNomePorNumeroSerie() {
       let numeroSerie = document.getElementById("numero_serie").value;
       if (!numeroSerie) return;
-      db.collection("clientes_dados_95321").where("numeroSerie", "==", numeroSerie)
-        .orderBy("timestamp", "desc").limit(1).get().then((querySnapshot) => {
+      db.collection("clientes_dados_95321").where("numeroSerie", "==", numeroSerie).get().then((querySnapshot) => {
         if (!querySnapshot.empty) {
           let dados = querySnapshot.docs[0].data();
           document.getElementById("nome").value = dados.nome;
@@ -143,7 +140,7 @@
         let blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
         let link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.download = "clientes_" + new Date().toISOString().slice(0, 10) + ".csv";
+        link.download = "clientes_" + new Date().toISOString().slice(0,10) + ".csv";
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -166,10 +163,11 @@
               juros: parseFloat(colunas[3].replace("%", "").trim()),
               valorTotal: parseFloat(colunas[4].replace("R$", "").trim()),
               dataCadastro: colunas[5],
-              dataCompleta: new Date().toISOString().slice(0, 10),
               timestamp: firebase.firestore.FieldValue.serverTimestamp()
             }).then(() => {
               carregarDados();
+            }).catch((error) => {
+              console.error("Erro ao importar linha do CSV:", error);
             });
           }
         }

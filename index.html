@@ -29,7 +29,7 @@
   <button onclick="exportarCSV()">Salvar CSV</button>
   <input type="file" id="arquivo" onchange="carregarArquivo(event)">
   <br><br>
-  <label>Selecionar data: </label><input type="date" id="filtro_data"> <button onclick="carregarDados()">Buscar</button><br><br>
+  <label>Selecionar data: </label><input type="date" id="filtro_data" onchange="carregarDados()"><br><br>
 
   <h3>Clientes Cadastrados</h3>
   <table border="1">
@@ -82,7 +82,47 @@
       });
     }
 
-    function carregarDados() {
+    
+function filtrarPorPeriodo() {
+  let dataInicial = document.getElementById("dataInicial").value;
+  let dataFinal = document.getElementById("dataFinal").value;
+
+  db.collection("clientes_dados_95321").orderBy("timestamp", "asc").get().then((querySnapshot) => {
+    let tabela = "";
+    querySnapshot.forEach((doc) => {
+      let d = doc.data();
+      let id = doc.id;
+
+      if (!d.dataCompleta || (!dataInicial && !dataFinal)) {
+        tabela += renderLinha(d, id);
+      } else if (dataInicial && dataFinal && d.dataCompleta >= dataInicial && d.dataCompleta <= dataFinal) {
+        tabela += renderLinha(d, id);
+      } else if (dataInicial && !dataFinal && d.dataCompleta >= dataInicial) {
+        tabela += renderLinha(d, id);
+      } else if (!dataInicial && dataFinal && d.dataCompleta <= dataFinal) {
+        tabela += renderLinha(d, id);
+      }
+    });
+    document.getElementById("tabela_resultados").innerHTML = tabela;
+  });
+}
+
+function renderLinha(d, id) {
+  return `
+    <tr>
+      <td>${d.numeroSerie}</td>
+      <td style="background-color: #fff8b3;">${d.nome}</td>
+      <td style="background-color: #ccffcc;">R$ ${parseFloat(d.valorReceber).toFixed(2)}</td>
+      <td>${d.juros}%</td>
+      <td style="background-color: #fff8b3;">R$ ${parseFloat(d.valorTotal).toFixed(2)}</td>
+      <td>${d.dataCadastro}</td>
+      <td>
+        <button onclick="editarDados(this)" data-id="${id}">Editar</button>
+        <button onclick="deletarDados(this)" data-id="${id}">Deletar</button>
+      </td>
+    </tr>`;
+}
+
       let filtro = document.getElementById("filtro_data");
       let dataFiltrada = filtro && filtro.value ? filtro.value : null;
 

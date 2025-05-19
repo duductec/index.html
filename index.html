@@ -3,7 +3,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Simulador de Totais - Corrigido</title>
+  <title>Simulador de Totais - FINAL OK</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
     label, input, button { display: block; margin: 10px 0; font-size: 16px; }
@@ -13,7 +13,6 @@
     .total { font-size: 20px; margin-top: 20px; color: green; font-weight: bold; }
   </style>
 
-  <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -36,24 +35,35 @@
 
       const querySnapshot = await getDocs(collection(db, "clientes"));
       const resultados = [];
+      let totalDocs = 0, ignorados = 0;
 
       querySnapshot.forEach((doc) => {
+        totalDocs++;
         const dados = doc.data();
-        const data = dados.dataCadastro;
-        const serie = dados.numeroSerie?.toString();
+        const data = (dados.dataCadastro || "").trim();
+        const serie = (dados.numeroSerie || "").trim();
         let valor = dados.valorTotal;
 
+        // Normalizar valor
         if (typeof valor === 'string') {
           valor = parseFloat(valor.replace("R$", "").replace(".", "").replace(",", "."));
         }
+        if (isNaN(valor)) {
+          console.log(`⚠️ Ignorado (valor inválido):`, dados);
+          ignorados++;
+          return;
+        }
 
         if (data === dataSelecionada && series.includes(serie)) {
+          console.log(`✅ Incluído: ${serie}, ${dados.nome}, ${valor}, ${data}`);
           resultados.push({
             numeroSerie: serie,
             nome: dados.nome,
             valorTotal: valor,
             dataCadastro: data
           });
+        } else {
+          ignorados++;
         }
       });
 
@@ -85,7 +95,7 @@
   </script>
 </head>
 <body>
-  <h2>Simulador de Totais por Série e Data</h2>
+  <h2>Simulador de Totais por Série e Data - VERSÃO FINAL</h2>
 
   <label>Data (formato dd/mm/aaaa):</label>
   <input type="text" id="data" placeholder="19/05/2025">
@@ -96,5 +106,6 @@
   <button onclick="simularTotais()">Calcular</button>
 
   <div id="resultado"></div>
+  <p style="margin-top:20px;">Abra o console (F12) para ver os detalhes dos dados processados.</p>
 </body>
 </html>

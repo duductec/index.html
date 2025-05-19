@@ -3,105 +3,45 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Simulador de Totais - Tolerante</title>
+  <title>Simulador Manual - Soma de Valores</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
-    label, input, button { display: block; margin: 10px 0; font-size: 16px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background: #eee; }
-    .total { font-size: 20px; margin-top: 20px; color: green; font-weight: bold; }
-    .alerta { margin-top: 20px; color: red; font-weight: bold; }
+    body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4; }
+    textarea { width: 100%; height: 300px; font-family: monospace; }
+    button { margin-top: 10px; padding: 10px 20px; font-size: 16px; }
+    .resultado { margin-top: 20px; font-size: 20px; color: green; font-weight: bold; }
   </style>
+</head>
+<body>
+  <h2>Simulador Manual - Soma de Valor Total</h2>
+  <p>Cole abaixo os dados no formato:</p>
+  <pre>10778231	MAIKON 16	R$ 1200.00	13%	R$ 1044.00	19/05/2025</pre>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  <textarea id="entrada" placeholder="Cole os dados aqui..."></textarea>
+  <button onclick="somarValores()">Calcular Soma</button>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAMrgw5VvWlP_MKH5R5az-tUOHHvrsJp0M",
-      authDomain: "salva-online.firebaseapp.com",
-      projectId: "salva-online",
-      storageBucket: "salva-online.firebasestorage.app",
-      messagingSenderId: "670777715031",
-      appId: "1:670777715031:web:4de6ff2d661b7471fdf612"
-    };
+  <div id="resultado" class="resultado"></div>
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  <script>
+    function somarValores() {
+      const texto = document.getElementById("entrada").value;
+      const linhas = texto.trim().split('\n');
+      let total = 0;
 
-    async function simularTotais() {
-      const dataSelecionada = document.getElementById("data").value.trim();
-      const seriesInput = document.getElementById("series").value.toLowerCase().split(',').map(s => s.trim());
-      const querySnapshot = await getDocs(collection(db, "clientes"));
-
-      const resultados = [];
-
-      querySnapshot.forEach((doc) => {
-        const dados = doc.data();
-        const data = (dados.dataCadastro || "").trim();
-        const serie = (dados.numeroSerie || "").trim().toLowerCase();
-        let valor = dados.valorTotal;
-
-        if (typeof valor === 'string') {
-          valor = parseFloat(valor.replace("R$", "").replace(".", "").replace(",", "."));
-        }
-        if (isNaN(valor)) return;
-
-        if (data === dataSelecionada && seriesInput.includes(serie)) {
-          resultados.push({
-            numeroSerie: dados.numeroSerie,
-            nome: dados.nome,
-            valorTotal: valor,
-            dataCadastro: data
-          });
+      linhas.forEach(linha => {
+        const colunas = linha.split('\t');
+        if (colunas.length >= 5) {
+          // Corrigir corretamente: remover apenas "R$", trocar vírgula por ponto
+          let valorStr = colunas[4].replace("R$", "").trim().replace(",", ".");
+          let valor = parseFloat(valorStr);
+          if (!isNaN(valor)) {
+            total += valor;
+          }
         }
       });
 
-      let total = resultados.reduce((acc, item) => acc + item.valorTotal, 0);
-
-      let html = "";
-
-      if (resultados.length === 0) {
-        html = '<div class="alerta">Nenhum resultado encontrado. Verifique a data e os números de série digitados.</div>';
-      } else {
-        html = `
-          <table>
-            <thead>
-              <tr><th>Nº Série</th><th>Nome</th><th>Valor Total</th><th>Data</th></tr>
-            </thead>
-            <tbody>
-              ${resultados.map(r => `
-                <tr>
-                  <td>${r.numeroSerie}</td>
-                  <td>${r.nome}</td>
-                  <td>R$ ${r.valorTotal.toFixed(2).replace('.', ',')}</td>
-                  <td>${r.dataCadastro}</td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
-          <div class="total">Soma Total: R$ ${total.toFixed(2).replace('.', ',')}</div>
-        `;
-      }
-
-      document.getElementById("resultado").innerHTML = html;
+      const totalFormatado = total.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById("resultado").innerText = "Total Somado: R$ " + totalFormatado;
     }
-
-    window.simularTotais = simularTotais;
   </script>
-</head>
-<body>
-  <h2>Simulador de Totais por Série e Data (Versão Tolerante)</h2>
-
-  <label>Data (formato dd/mm/aaaa):</label>
-  <input type="text" id="data" placeholder="02/05/2025">
-
-  <label>Números de Série (minúsculo ou maiúsculo, separados por vírgula):</label>
-  <input type="text" id="series" placeholder="jbb07952259,10778231">
-
-  <button onclick="simularTotais()">Calcular</button>
-
-  <div id="resultado"></div>
 </body>
 </html>

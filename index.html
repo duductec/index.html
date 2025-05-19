@@ -1,234 +1,100 @@
 
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Sistema de Pagamentos</title>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-  <script>
+  <title>Simulador de Totais - Firebase</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+    label, input, button { display: block; margin: 10px 0; font-size: 16px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #eee; }
+    .total { font-size: 20px; margin-top: 20px; color: green; font-weight: bold; }
+  </style>
+
+  <!-- Firebase SDKs -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
     const firebaseConfig = {
       apiKey: "AIzaSyAMrgw5VvWlP_MKH5R5az-tUOHHvrsJp0M",
       authDomain: "salva-online.firebaseapp.com",
       projectId: "salva-online",
-      storageBucket: "salva-online.appspot.com",
+      storageBucket: "salva-online.firebasestorage.app",
       messagingSenderId: "670777715031",
       appId: "1:670777715031:web:4de6ff2d661b7471fdf612"
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function simularTotais() {
+      const dataSelecionada = document.getElementById("data").value.trim();
+      const series = document.getElementById("series").value.split(',').map(s => s.trim());
+
+      const querySnapshot = await getDocs(collection(db, "clientes"));
+      const resultados = [];
+
+      querySnapshot.forEach((doc) => {
+        const dados = doc.data();
+        const data = dados.dataCadastro;
+        const serie = dados.numeroSerie?.toString();
+        let valor = dados.valorTotal;
+
+        if (typeof valor === 'string') {
+          valor = parseFloat(valor.replace("R$", "").replace(".", "").replace(",", "."));
+        }
+
+        if (data === dataSelecionada && series.includes(serie)) {
+          resultados.push({
+            numeroSerie: serie,
+            nome: dados.nome,
+            valorTotal: valor,
+            dataCadastro: data
+          });
+        }
+      });
+
+      let total = resultados.reduce((acc, item) => acc + item.valorTotal, 0);
+
+      const html = `
+        <table>
+          <thead>
+            <tr><th>Nº Série</th><th>Nome</th><th>Valor Total</th><th>Data</th></tr>
+          </thead>
+          <tbody>
+            ${resultados.map(r => `
+              <tr>
+                <td>${r.numeroSerie}</td>
+                <td>${r.nome}</td>
+                <td>R$ ${r.valorTotal.toFixed(2).replace('.', ',')}</td>
+                <td>${r.dataCadastro}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+        <div class="total">Soma Total: R$ ${total.toFixed(2).replace('.', ',')}</div>
+      `;
+
+      document.getElementById("resultado").innerHTML = html;
+    }
+
+    window.simularTotais = simularTotais;
   </script>
 </head>
-<body onload="carregarDados()">
-  <h2>Sistema de Pagamentos</h2>
-  <label>Número de Série: </label><input type="text" id="numero_serie" onblur="buscarNomePorNumeroSerie()"><br><br>
-  <label>Nome: </label><input type="text" id="nome"><br><br>
-  <label>Valor a Receber: </label><input type="number" id="valor_receber"><br><br>
-  <label>Juros (%): </label><input type="number" id="juros"><br><br>
-  <button onclick="salvarDados()">Adicionar Cliente</button>
-  <button onclick="exportarCSV()">Salvar CSV</button>
-  <input type="file" id="arquivo" onchange="carregarArquivo(event)">
-  
-  <label>Filtrar por data: </label>
-  <select id="filtro_data" onchange="carregarDadosPorData()">
-    <option value="">Ver tudo</option>
-  </select><br><br>
-  <h3>Clientes Cadastrados</h3>
-    
-  <table border="1">
-    <thead>
-      <tr>
-        <th>Número de Série</th>
-        <th>Nome</th>
-        <th>Valor a Receber</th>
-        <th>Juros (%)</th>
-        <th>Valor Total</th>
-        <th>Data do Cadastro</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody id="tabela_resultados"></tbody>
-  </table>
-  <script>
-    function salvarDados() {
-      let numeroSerie = document.getElementById("numero_serie").value;
-      let nome = document.getElementById("nome").value;
-      let valorReceber = parseFloat(document.getElementById("valor_receber").value);
-      let juros = parseFloat(document.getElementById("juros").value);
-      let dataCadastro = new Date().toLocaleDateString();
-      if (isNaN(valorReceber) || isNaN(juros)) {
-        alert("Por favor, preencha todos os campos corretamente.");
-        return;
-      }
-      let valorTotal = valorReceber - (valorReceber * (juros / 100));
-      db.collection("clientes_dados_95321").add({
-        numeroSerie,
-        nome,
-        valorReceber,
-        juros,
-        valorTotal,
-        dataCadastro,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(() => {
-        alert("Salvo com sucesso no Firebase!");
-        carregarDados();
-        limparFormulario();
-      }).catch((error) => {
-        console.error("Erro ao salvar: ", error);
-      });
-    }
+<body>
+  <h2>Simulador de Totais por Série e Data</h2>
 
-    
-function carregarDados() {
-  const hoje = new Date();
-  const hojeFormatado = hoje.toLocaleDateString();
-  carregarDadosPorData(null);
-}
+  <label>Data (formato dd/mm/aaaa):</label>
+  <input type="text" id="data" placeholder="19/05/2025">
 
-function carregarDadosPorData(dataSelecionada = null) {
-  db.collection("clientes_dados_95321").orderBy("timestamp", "asc").get().then((querySnapshot) => {
-    let tabela = "";
-    let datasUnicas = new Set();
-    querySnapshot.forEach((doc) => {
-      let d = doc.data();
-      datasUnicas.add(d.dataCadastro);
-    });
+  <label>Números de Série (até 10, separados por vírgula):</label>
+  <input type="text" id="series" placeholder="10778231,20679379">
 
-    // Atualizar o select com as datas únicas ordenadas
-    const seletor = document.getElementById("filtro_data");
-    if (seletor && seletor.options.length <= 1) {
-      Array.from(datasUnicas).sort().forEach(data => {
-        let opt = document.createElement("option");
-        opt.value = data;
-        opt.innerText = data;
-        seletor.appendChild(opt);
-      });
-    }
+  <button onclick="simularTotais()">Calcular</button>
 
-    querySnapshot.forEach((doc) => {
-      let d = doc.data();
-      let id = doc.id;
-      if (!dataSelecionada || d.dataCadastro === dataSelecionada) {
-        tabela += `
-          <tr>
-            <td>${d.numeroSerie}</td>
-            <td style="background-color: #fff8b3;">${d.nome}</td>
-            <td style="background-color: #ccffcc;">R$ ${parseFloat(d.valorReceber).toFixed(2)}</td>
-            <td>${d.juros}%</td>
-            <td style="background-color: #fff8b3;">R$ ${parseFloat(d.valorTotal).toFixed(2)}</td>
-            <td>${d.dataCadastro}</td>
-            <td>
-              <button onclick="editarDados(this)" data-id="${id}">Editar</button>
-              <button onclick="deletarDados(this)" data-id="${id}">Deletar</button>
-            </td>
-          </tr>`;
-      }
-    });
-    document.getElementById("tabela_resultados").innerHTML = tabela;
-  });
-}
-
-      db.collection("clientes_dados_95321").get().then((querySnapshot) => {
-        let tabela = "";
-        querySnapshot.forEach((doc) => {
-          let d = doc.data();
-          let id = doc.id;
-          tabela += `
-            <tr>
-              <td>${d.numeroSerie}</td>
-              <td style="background-color: #fff8b3;">${d.nome}</td>
-              <td style="background-color: #ccffcc;">R$ ${parseFloat(d.valorReceber).toFixed(2)}</td>
-              <td>${d.juros}%</td>
-              <td style="background-color: #fff8b3;">R$ ${parseFloat(d.valorTotal).toFixed(2)}</td>
-              <td>${d.dataCadastro}</td>
-              <td>
-                <button onclick="editarDados(this)" data-id="${id}">Editar</button>
-                <button onclick="deletarDados(this)" data-id="${id}">Deletar</button>
-              </td>
-            </tr>`;
-        });
-        document.getElementById("tabela_resultados").innerHTML = tabela;
-      });
-    }
-
-    function buscarNomePorNumeroSerie() {
-      let numeroSerie = document.getElementById("numero_serie").value;
-      if (!numeroSerie) return;
-      db.collection("clientes_dados_95321").where("numeroSerie", "==", numeroSerie).get().then((querySnapshot) => {
-        if (!querySnapshot.empty) {
-          let dados = querySnapshot.docs[0].data();
-          document.getElementById("nome").value = dados.nome;
-        }
-      });
-    }
-
-    function editarDados(botao) {
-      let linha = botao.closest("tr");
-      document.getElementById("numero_serie").value = linha.children[0].innerText;
-      document.getElementById("nome").value = linha.children[1].innerText;
-      document.getElementById("valor_receber").value = parseFloat(linha.children[2].innerText.replace("R$", ""));
-      document.getElementById("juros").value = parseFloat(linha.children[3].innerText.replace("%", ""));
-      deletarDados(botao);
-    }
-
-    function deletarDados(botao) {
-      let id = botao.getAttribute("data-id");
-      db.collection("clientes_dados_95321").doc(id).delete().then(() => {
-        carregarDados();
-      });
-    }
-
-    function limparFormulario() {
-      document.getElementById("numero_serie").value = "";
-      document.getElementById("nome").value = "";
-      document.getElementById("valor_receber").value = "";
-      document.getElementById("juros").value = "";
-    }
-
-    function exportarCSV() {
-      db.collection("clientes_dados_95321").get().then((querySnapshot) => {
-        let csv = "Número de Série,Nome,Valor a Receber,Juros (%),Valor Total,Data do Cadastro\n";
-        querySnapshot.forEach((doc) => {
-          let d = doc.data();
-          csv += `${d.numeroSerie},${d.nome},${d.valorReceber},${d.juros},${d.valorTotal},${d.dataCadastro}\n`;
-        });
-        let blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-        let link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = "clientes_" + new Date().toISOString().slice(0,10) + ".csv";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      });
-    }
-
-    function carregarArquivo(event) {
-      let file = event.target.files[0];
-      if (!file) return;
-      let reader = new FileReader();
-      reader.onload = function(e) {
-        let linhas = e.target.result.split("\n");
-        for (let i = 1; i < linhas.length; i++) {
-          let colunas = linhas[i].split(",");
-          if (colunas.length >= 6) {
-            db.collection("clientes_dados_95321").add({
-              numeroSerie: colunas[0],
-              nome: colunas[1],
-              valorReceber: parseFloat(colunas[2].replace("R$", "").trim()),
-              juros: parseFloat(colunas[3].replace("%", "").trim()),
-              valorTotal: parseFloat(colunas[4].replace("R$", "").trim()),
-              dataCadastro: colunas[5],
-              timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-              carregarDados();
-            }).catch((error) => {
-              console.error("Erro ao importar linha do CSV:", error);
-            });
-          }
-        }
-      };
-      reader.readAsText(file);
-    }
-  </script>
+  <div id="resultado"></div>
 </body>
 </html>

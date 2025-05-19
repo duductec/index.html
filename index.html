@@ -3,7 +3,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Simulador de Totais - FINAL OK</title>
+  <title>Simulador de Totais - Tolerante</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
     label, input, button { display: block; margin: 10px 0; font-size: 16px; }
@@ -11,6 +11,7 @@
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
     th { background: #eee; }
     .total { font-size: 20px; margin-top: 20px; color: green; font-weight: bold; }
+    .alerta { margin-top: 20px; color: red; font-weight: bold; }
   </style>
 
   <script type="module">
@@ -31,62 +32,58 @@
 
     async function simularTotais() {
       const dataSelecionada = document.getElementById("data").value.trim();
-      const series = document.getElementById("series").value.split(',').map(s => s.trim());
-
+      const seriesInput = document.getElementById("series").value.toLowerCase().split(',').map(s => s.trim());
       const querySnapshot = await getDocs(collection(db, "clientes"));
+
       const resultados = [];
-      let totalDocs = 0, ignorados = 0;
 
       querySnapshot.forEach((doc) => {
-        totalDocs++;
         const dados = doc.data();
         const data = (dados.dataCadastro || "").trim();
-        const serie = (dados.numeroSerie || "").trim();
+        const serie = (dados.numeroSerie || "").trim().toLowerCase();
         let valor = dados.valorTotal;
 
-        // Normalizar valor
         if (typeof valor === 'string') {
           valor = parseFloat(valor.replace("R$", "").replace(".", "").replace(",", "."));
         }
-        if (isNaN(valor)) {
-          console.log(`⚠️ Ignorado (valor inválido):`, dados);
-          ignorados++;
-          return;
-        }
+        if (isNaN(valor)) return;
 
-        if (data === dataSelecionada && series.includes(serie)) {
-          console.log(`✅ Incluído: ${serie}, ${dados.nome}, ${valor}, ${data}`);
+        if (data === dataSelecionada && seriesInput.includes(serie)) {
           resultados.push({
-            numeroSerie: serie,
+            numeroSerie: dados.numeroSerie,
             nome: dados.nome,
             valorTotal: valor,
             dataCadastro: data
           });
-        } else {
-          ignorados++;
         }
       });
 
       let total = resultados.reduce((acc, item) => acc + item.valorTotal, 0);
 
-      const html = `
-        <table>
-          <thead>
-            <tr><th>Nº Série</th><th>Nome</th><th>Valor Total</th><th>Data</th></tr>
-          </thead>
-          <tbody>
-            ${resultados.map(r => `
-              <tr>
-                <td>${r.numeroSerie}</td>
-                <td>${r.nome}</td>
-                <td>R$ ${r.valorTotal.toFixed(2).replace('.', ',')}</td>
-                <td>${r.dataCadastro}</td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-        <div class="total">Soma Total: R$ ${total.toFixed(2).replace('.', ',')}</div>
-      `;
+      let html = "";
+
+      if (resultados.length === 0) {
+        html = '<div class="alerta">Nenhum resultado encontrado. Verifique a data e os números de série digitados.</div>';
+      } else {
+        html = `
+          <table>
+            <thead>
+              <tr><th>Nº Série</th><th>Nome</th><th>Valor Total</th><th>Data</th></tr>
+            </thead>
+            <tbody>
+              ${resultados.map(r => `
+                <tr>
+                  <td>${r.numeroSerie}</td>
+                  <td>${r.nome}</td>
+                  <td>R$ ${r.valorTotal.toFixed(2).replace('.', ',')}</td>
+                  <td>${r.dataCadastro}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+          <div class="total">Soma Total: R$ ${total.toFixed(2).replace('.', ',')}</div>
+        `;
+      }
 
       document.getElementById("resultado").innerHTML = html;
     }
@@ -95,17 +92,16 @@
   </script>
 </head>
 <body>
-  <h2>Simulador de Totais por Série e Data - VERSÃO FINAL</h2>
+  <h2>Simulador de Totais por Série e Data (Versão Tolerante)</h2>
 
   <label>Data (formato dd/mm/aaaa):</label>
-  <input type="text" id="data" placeholder="19/05/2025">
+  <input type="text" id="data" placeholder="02/05/2025">
 
-  <label>Números de Série (até 10, separados por vírgula):</label>
-  <input type="text" id="series" placeholder="10778231,20679379">
+  <label>Números de Série (minúsculo ou maiúsculo, separados por vírgula):</label>
+  <input type="text" id="series" placeholder="jbb07952259,10778231">
 
   <button onclick="simularTotais()">Calcular</button>
 
   <div id="resultado"></div>
-  <p style="margin-top:20px;">Abra o console (F12) para ver os detalhes dos dados processados.</p>
 </body>
 </html>

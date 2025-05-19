@@ -3,7 +3,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Simulador de Totais - Firebase Corrigido</title>
+  <title>Simulador de Totais - Corrigido</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
     label, input, button { display: block; margin: 10px 0; font-size: 16px; }
@@ -39,9 +39,9 @@
 
       querySnapshot.forEach((doc) => {
         const dados = doc.data();
-        const data = dados["Data do Cadastro"];
-        const serie = dados["Número de Série"]?.toString();
-        let valor = dados["Valor Total"];
+        const data = dados.dataCadastro;
+        const serie = dados.numeroSerie?.toString();
+        let valor = dados.valorTotal;
 
         if (typeof valor === 'string') {
           valor = parseFloat(valor.replace("R$", "").replace(".", "").replace(",", "."));
@@ -50,7 +50,7 @@
         if (data === dataSelecionada && series.includes(serie)) {
           resultados.push({
             numeroSerie: serie,
-            nome: dados["Nome"],
+            nome: dados.nome,
             valorTotal: valor,
             dataCadastro: data
           });
